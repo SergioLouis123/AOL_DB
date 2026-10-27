@@ -4,7 +4,6 @@ GO
 USE kodes_retail;
 GO
 
--- Drop child tables before parent tables
 DROP TABLE IF EXISTS dbo.Invoice_Detail;
 DROP TABLE IF EXISTS dbo.Invoice;
 DROP TABLE IF EXISTS dbo.Product;
