@@ -294,8 +294,3 @@ LEFT JOIN dbo.Product AS p
     ON p.StockCode = d.StockCode
 WHERE p.StockCode IS NULL;
 GO
-
-SELECT
-    @@SERVERNAME AS ServerName,
-    DB_NAME() AS CurrentDatabase,
-    @@SPID AS SessionID;
