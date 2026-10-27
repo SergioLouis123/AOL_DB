@@ -1,7 +1,6 @@
 USE kodes_retail;
 GO
 
--- Drop child tables before parent tables
 DROP TABLE IF EXISTS dbo.Invoice_Detail;
 DROP TABLE IF EXISTS dbo.Invoice;
 DROP TABLE IF EXISTS dbo.Product;
@@ -10,7 +9,6 @@ GO
 
 USE kodes_retail;
 GO
---Create normalized tables
 
 CREATE TABLE dbo.Customer (
     CustomerID INT NOT NULL,
@@ -74,7 +72,6 @@ CREATE TABLE dbo.Invoice_Detail (
 );
 GO
 
---Audit customer-country conflicts
 SELECT
     TRY_CONVERT(INT, LTRIM(RTRIM(CustomerID))) AS CustomerID,
     COUNT(DISTINCT NULLIF(LTRIM(RTRIM(Country)), ''))
@@ -85,7 +82,6 @@ GROUP BY TRY_CONVERT(INT, LTRIM(RTRIM(CustomerID)))
 HAVING COUNT(DISTINCT NULLIF(LTRIM(RTRIM(Country)), '')) > 1;
 GO
 
---Populate Customer
 INSERT INTO dbo.Customer (CustomerID, Country)
 SELECT
     TRY_CONVERT(INT, LTRIM(RTRIM(CustomerID))),
@@ -98,7 +94,6 @@ WHERE TRY_CONVERT(INT, LTRIM(RTRIM(CustomerID))) IS NOT NULL
 GROUP BY TRY_CONVERT(INT, LTRIM(RTRIM(CustomerID)));
 GO
 
---Audit product-description conflicts
 SELECT
     LTRIM(RTRIM(StockCode)) AS StockCode,
     COUNT(DISTINCT NULLIF(LTRIM(RTRIM(Description)), ''))
@@ -109,7 +104,6 @@ GROUP BY LTRIM(RTRIM(StockCode))
 HAVING COUNT(DISTINCT NULLIF(LTRIM(RTRIM(Description)), '')) > 1;
 GO
 
---Populate Product
 INSERT INTO dbo.Product (StockCode, Description)
 SELECT
     LTRIM(RTRIM(StockCode)),
@@ -119,8 +113,6 @@ WHERE NULLIF(LTRIM(RTRIM(StockCode)), '') IS NOT NULL
 GROUP BY LTRIM(RTRIM(StockCode));
 GO
 
---Audit invoice inconsistencies
---Date format: MM/DD/YYYY HH:MI
 WITH InvoiceSource AS (
     SELECT
         LTRIM(RTRIM(Invoice)) AS InvoiceID,
@@ -146,15 +138,6 @@ HAVING
     COUNT(DISTINCT InvoiceDate) > 1
     OR COUNT(DISTINCT CustomerID) > 1;
 GO
-
-
-
---Populate Invoice
---One row per InvoiceID.
---Earliest valid date is selected if dates conflict.
---Highest valid CustomerID is selected if IDs conflict.
---Conflicts must be reviewed using Step 6.
-
 
 WITH InvoiceSource AS (
     SELECT
@@ -190,12 +173,6 @@ LEFT JOIN dbo.Customer AS c
 WHERE ig.InvoiceDate IS NOT NULL;
 GO
 
---Populate Invoice_Detail
---Retains repeated source transaction rows.
---Allows negative quantities and prices.
---Excludes zero quantity and unconvertible prices.
---Requires matching Invoice and Product records.
-
 
 INSERT INTO dbo.Invoice_Detail
     (InvoiceID, StockCode, Quantity, UnitPrice)
@@ -220,7 +197,6 @@ WHERE
     ) IS NOT NULL;
 GO
 
-  --Validate row counts
 SELECT 'Staging' AS TableName, COUNT_BIG(*) AS TotalRows
 FROM dbo.Staging
 
@@ -245,7 +221,6 @@ SELECT 'Invoice_Detail', COUNT_BIG(*)
 FROM dbo.Invoice_Detail;
 GO
 
---Check for missing or invalid source values
 SELECT
     COUNT_BIG(*) AS InvalidInvoiceDates
 FROM dbo.Staging
@@ -279,8 +254,6 @@ WHERE TRY_CONVERT(INT, LTRIM(RTRIM(Quantity))) IS NULL;
 GO
 
 
---Count source rows not loaded into Invoice_Detail
-
 SELECT COUNT_BIG(*) AS RowsNotEligibleForInvoiceDetail
 FROM dbo.Staging AS s
 WHERE
@@ -309,7 +282,6 @@ WHERE
     );
 GO
 
---Confirm referential integrity
 SELECT d.*
 FROM dbo.Invoice_Detail AS d
 LEFT JOIN dbo.Invoice AS i
