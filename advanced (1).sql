@@ -1,18 +1,6 @@
 USE kodes_retail;
 GO
 
-/*
-    Phase 4 - Advanced Features & Automation (SQL Server / T-SQL)
-
-    Catatan:
-    - Product belum punya kolom stok, jadi ditambah StockQty (inventory level).
-    - Retur di dataset ditandai Quantity negatif (Invoice berawalan 'C'),
-      jadi satu rumus berlaku untuk dua kasus:
-        sale   -> Quantity positif -> stok berkurang
-        return -> Quantity negatif -> stok bertambah
-*/
-
--- 1. Tambah kolom inventory ke Product (aman dijalankan ulang)
 IF COL_LENGTH('dbo.Product', 'StockQty') IS NULL
 BEGIN
     ALTER TABLE dbo.Product
@@ -21,7 +9,6 @@ BEGIN
 END
 GO
 
--- 2. Trigger: update stok otomatis tiap ada transaksi baru
 CREATE OR ALTER TRIGGER dbo.trg_Invoice_Detail_UpdateInventory
 ON dbo.Invoice_Detail
 AFTER INSERT
@@ -41,7 +28,6 @@ BEGIN
 END;
 GO
 
--- 3. Stored procedure: riwayat invoice per customer
 CREATE OR ALTER PROCEDURE dbo.GetCustomerInvoiceHistory
     @CustomerID INT
 AS
